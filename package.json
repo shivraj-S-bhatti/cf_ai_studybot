@@ -1,0 +1,53 @@
+{
+  "name": "studybot-cloudflare-agent",
+  "version": "1.0.0",
+  "description": "AI-powered study companion demonstrating Cloudflare's AI stack with Workers, Durable Objects, Workers AI, and D1 Database",
+  "main": "src/index.ts",
+  "type": "module",
+  "keywords": [
+    "cloudflare",
+    "workers",
+    "ai",
+    "durable-objects",
+    "d1-database",
+    "study-buddy",
+    "education",
+    "chatbot",
+    "llama"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/studybot-cloudflare-agent.git"
+  },
+  "homepage": "https://github.com/your-username/studybot-cloudflare-agent#readme",
+  "bugs": {
+    "url": "https://github.com/your-username/studybot-cloudflare-agent/issues"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:prod": "wrangler deploy --env production",
+    "test": "node test.js",
+    "test:types": "wrangler types",
+    "lint": "tsc --noEmit",
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "start": "wrangler dev",
+    "tail": "wrangler tail",
+    "d1:create": "wrangler d1 create studybot-db",
+    "d1:migrate": "wrangler d1 migrations apply studybot-db"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "wrangler": "^3.78.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Buddy Agent</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🤖 Study Buddy Agent</h1>
+            <p>Your AI-powered study companion</p>
+        </header>
+
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    <div class="message-content">
+                        <strong>Study Buddy:</strong> Hi! I'm your Study Buddy. I can help you:
+                        <ul>
+                            <li>Summarize topics (try "summarize machine learning")</li>
+                            <li>Generate quizzes (try "quiz me on calculus")</li>
+                            <li>Track your study streak (try "show my progress")</li>
+                        </ul>
+                        What would you like to study today?
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="input-group">
+                    <input type="text" id="messageInput" placeholder="Type your message here..." autocomplete="off">
+                    <button id="sendButton" type="button">Send</button>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-btn" data-action="summarize">📚 Summarize Topic</button>
+                    <button class="quick-btn" data-action="quiz">🧠 Generate Quiz</button>
+                    <button class="quick-btn" data-action="progress">📊 Show Progress</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span id="connectionStatus">Connecting...</span>
+            <span id="userStreak">Streak: 0 days</span>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+name = "studybot-agent"
+main = "src/index.ts"
+compatibility_date = "2024-01-15"
+
+[ai]
+binding = "AI"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "studybot-db"
+database_id = "a23032ca-3fe3-48c3-a7cd-774253a86496"
+
+[[durable_objects.bindings]]
+name = "STUDYBOT_AGENT"
+class_name = "StudyBotAgent"
+script_name = "studybot-agent"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["StudyBotAgent"]
+
+[env.production]
+name = "studybot-agent-prod"
+
+[env.staging]
+name = "studybot-agent-staging"

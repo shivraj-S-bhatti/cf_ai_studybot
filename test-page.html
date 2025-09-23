@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Buddy Agent - Type & Import Tests</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #555;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .loading {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.pending {
+            background: #ffc107;
+            color: #000;
+        }
+        .status.success {
+            background: #28a745;
+            color: white;
+        }
+        .status.error {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Study Buddy Agent - Type & Import Tests</h1>
+        
+        <div class="test-section">
+            <h3>1. Type Availability Tests</h3>
+            <p>Test if all required types (console, WebSocket, DurableObjectState, D1Database) are available.</p>
+            <button onclick="runTypeTest()">Run Type Test</button>
+            <span id="typeStatus" class="status pending">Pending</span>
+            <div id="typeResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>2. AI Integration Test</h3>
+            <p>Test if Workers AI is properly configured and responding.</p>
+            <button onclick="runAITest()">Run AI Test</button>
+            <span id="aiStatus" class="status pending">Pending</span>
+            <div id="aiResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Database Test</h3>
+            <p>Test if D1 Database is properly configured and working.</p>
+            <button onclick="runDatabaseTest()">Run Database Test</button>
+            <span id="dbStatus" class="status pending">Pending</span>
+            <div id="dbResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Complete Integration Test</h3>
+            <p>Run all tests together to verify the complete system.</p>
+            <button onclick="runAllTests()">Run All Tests</button>
+            <span id="allStatus" class="status pending">Pending</span>
+            <div id="allResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Chat Interface Test</h3>
+            <p>Test the actual chat functionality.</p>
+            <button onclick="runChatTest()">Run Chat Test</button>
+            <span id="chatStatus" class="status pending">Pending</span>
+            <div id="chatResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = window.location.origin;
+        
+        function updateStatus(elementId, status, message = '') {
+            const statusEl = document.getElementById(elementId);
+            const resultEl = document.getElementById(elementId.replace('Status', 'Result'));
+            
+            statusEl.textContent = status;
+            statusEl.className = `status ${status}`;
+            
+            if (message) {
+                resultEl.textContent = message;
+                resultEl.style.display = 'block';
+                resultEl.className = `result ${status === 'success' ? 'success' : status === 'error' ? 'error' : 'info'}`;
+            }
+        }
+
+        async function runTypeTest() {
+            updateStatus('typeStatus', 'pending', 'Running type availability test...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/test/types`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('typeStatus', 'success', JSON.stringify(data, null, 2));
+                } else {
+                    updateStatus('typeStatus', 'error', `Error: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus('typeStatus', 'error', `Network error: ${error.message}`);
+            }
+        }
+
+        async function runAITest() {
+            updateStatus('aiStatus', 'pending', 'Running AI integration test...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/test/ai`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('aiStatus', 'success', JSON.stringify(data, null, 2));
+                } else {
+                    updateStatus('aiStatus', 'error', `Error: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus('aiStatus', 'error', `Network error: ${error.message}`);
+            }
+        }
+
+        async function runDatabaseTest() {
+            updateStatus('dbStatus', 'pending', 'Running database test...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/test/database`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('dbStatus', 'success', JSON.stringify(data, null, 2));
+                } else {
+                    updateStatus('dbStatus', 'error', `Error: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus('dbStatus', 'error', `Network error: ${error.message}`);
+            }
+        }
+
+        async function runAllTests() {
+            updateStatus('allStatus', 'pending', 'Running complete integration test...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/test/all`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('allStatus', 'success', JSON.stringify(data, null, 2));
+                } else {
+                    updateStatus('allStatus', 'error', `Error: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus('allStatus', 'error', `Network error: ${error.message}`);
+            }
+        }
+
+        async function runChatTest() {
+            updateStatus('chatStatus', 'pending', 'Running chat functionality test...');
+            
+            try {
+                const response = await fetch(`${baseUrl}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: 'Hello! Can you help me test the system?',
+                        userId: 'test-user'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus('chatStatus', 'success', `Chat Response: ${data.response}`);
+                } else {
+                    updateStatus('chatStatus', 'error', `Error: ${response.status} - ${JSON.stringify(data, null, 2)}`);
+                }
+            } catch (error) {
+                updateStatus('chatStatus', 'error', `Network error: ${error.message}`);
+            }
+        }
+
+        // Auto-run type test on page load
+        window.addEventListener('load', () => {
+            runTypeTest();
+        });
+    </script>
+</body>
+</html>

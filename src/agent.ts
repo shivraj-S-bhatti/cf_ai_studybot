@@ -178,7 +178,7 @@ Format as JSON with this structure:
   ]
 }`;
 
-      const response = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', {
+      const response = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 800,
         temperature: 0.8
@@ -262,7 +262,7 @@ Respond as a friendly, helpful study assistant. Keep your response concise (unde
 
 Be encouraging and mention their current study streak of ${userState.streak} days if it's greater than 0.`;
 
-      const response = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct-fast', {
+      const response = await this.env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
         messages: [{ role: 'user', content: prompt }],
         max_tokens: 200,
         temperature: 0.7

@@ -35,6 +35,14 @@ class StudyBuddyApp {
                 this.handleQuickAction(action);
             });
         });
+
+        // Quiz action buttons
+        document.querySelectorAll('.quiz-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const action = e.target.dataset.action;
+                this.handleQuizAction(action);
+            });
+        });
     }
 
     getUserId() {
@@ -248,6 +256,121 @@ class StudyBuddyApp {
         if (actions[action]) {
             this.messageInput.value = actions[action];
             this.messageInput.focus();
+        }
+    }
+
+    async handleQuizAction(action) {
+        switch (action) {
+            case 'list-quizzes':
+                await this.listQuizzes();
+                break;
+            case 'show-last-quiz':
+                await this.showLastQuiz();
+                break;
+            case 'submit-answers':
+                await this.submitAnswers();
+                break;
+        }
+    }
+
+    async listQuizzes() {
+        try {
+            const response = await fetch(`/api/quiz/list?userId=${this.userId}`);
+            const data = await response.json();
+            
+            if (data.quizzes && data.quizzes.length > 0) {
+                let message = '📝 **Your Recent Quizzes**\n\n';
+                data.quizzes.slice(0, 5).forEach((quiz, index) => {
+                    const date = new Date(quiz.createdAt).toLocaleDateString();
+                    message += `${index + 1}. **${quiz.topic}** (${quiz.questions.length} questions) - ${date}\n`;
+                    message += `   ID: \`${quiz.id}\`\n\n`;
+                });
+                message += '💡 Use "show quiz [ID]" to view a specific quiz.';
+                this.addMessage(message, 'bot');
+            } else {
+                this.addMessage('📝 **Your Quizzes**\n\nNo quizzes yet! Try creating one with "quiz me on [topic]".', 'bot');
+            }
+        } catch (error) {
+            console.error('Error listing quizzes:', error);
+            this.addMessage('❌ Error loading quizzes. Please try again.', 'bot');
+        }
+    }
+
+    async showLastQuiz() {
+        try {
+            const response = await fetch(`/api/quiz/list?userId=${this.userId}`);
+            const data = await response.json();
+            
+            if (!data.quizzes || data.quizzes.length === 0) {
+                this.addMessage('❌ No quizzes available. Create a quiz first!', 'bot');
+                return;
+            }
+            
+            const latestQuiz = data.quizzes[0];
+            const quizResponse = await fetch(`/api/quiz/${latestQuiz.id}?userId=${this.userId}`);
+            const quizData = await quizResponse.json();
+            
+            if (quizData.quiz) {
+                let message = `🧠 **Quiz: ${quizData.quiz.topic}**\n\n`;
+                quizData.quiz.questions.forEach((question, index) => {
+                    message += `**Question ${index + 1}:** ${question.question}\n`;
+                    if (question.options) {
+                        question.options.forEach((option, i) => {
+                            message += `${String.fromCharCode(65 + i)}. ${option}\n`;
+                        });
+                    }
+                    message += '\n';
+                });
+                message += '💡 Use "answer A,B,C" to submit your answers.';
+                this.addMessage(message, 'bot');
+            } else {
+                this.addMessage('❌ Quiz not found.', 'bot');
+            }
+        } catch (error) {
+            console.error('Error showing quiz:', error);
+            this.addMessage('❌ Error loading quiz. Please try again.', 'bot');
+        }
+    }
+
+    async submitAnswers() {
+        const answers = prompt('Enter your answers separated by commas (e.g., A,B,C):');
+        if (!answers) return;
+        
+        try {
+            const response = await fetch(`/api/quiz/list?userId=${this.userId}`);
+            const data = await response.json();
+            
+            if (!data.quizzes || data.quizzes.length === 0) {
+                this.addMessage('❌ No quiz to submit answers to. Create a quiz first!', 'bot');
+                return;
+            }
+            
+            const latestQuiz = data.quizzes[0];
+            const submitResponse = await fetch(`/api/quiz/${latestQuiz.id}/submit`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId: this.userId,
+                    answers: answers.split(/[,\s]+/).filter(Boolean)
+                })
+            });
+            
+            const result = await submitResponse.json();
+            
+            if (result.error) {
+                this.addMessage(`❌ ${result.error}`, 'bot');
+            } else {
+                const emoji = result.percentage >= 80 ? '🎉' : result.percentage >= 60 ? '👍' : '📚';
+                const message = `${emoji} **Quiz Results**\n\n` +
+                    `📊 Score: ${result.score}/${result.total} (${result.percentage}%)\n\n` +
+                    `${result.percentage >= 80 ? 'Excellent work!' : result.percentage >= 60 ? 'Good job!' : 'Keep studying!'}`;
+                this.addMessage(message, 'bot');
+            }
+        } catch (error) {
+            console.error('Error submitting answers:', error);
+            this.addMessage('❌ Error submitting answers. Please try again.', 'bot');
         }
     }
 

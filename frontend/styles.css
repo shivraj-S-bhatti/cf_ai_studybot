@@ -157,6 +157,15 @@ body {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.quiz-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
 }
 
 .quick-btn {
@@ -172,6 +181,25 @@ body {
 .quick-btn:hover {
     background: #e9ecef;
     transform: translateY(-1px);
+}
+
+.quiz-btn {
+    padding: 8px 16px;
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #1976d2;
+}
+
+.quiz-btn:hover {
+    background: #bbdefb;
+    border-color: #1976d2;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
 }
 
 .status-bar {

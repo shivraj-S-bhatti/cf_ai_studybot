@@ -77,6 +77,8 @@ export class StudyBotAgent {
     await this.db.exec(`CREATE TABLE IF NOT EXISTS user_states (user_id TEXT PRIMARY KEY, streak INTEGER DEFAULT 0, last_topic TEXT, last_active TEXT, data TEXT)`);
     
     await this.db.exec(`CREATE TABLE IF NOT EXISTS quizzes (id TEXT PRIMARY KEY, user_id TEXT, topic TEXT, questions TEXT, created_at TEXT)`);
+    
+    await this.db.exec(`CREATE TABLE IF NOT EXISTS quiz_results (id TEXT PRIMARY KEY, quiz_id TEXT, user_id TEXT, answers TEXT, score INTEGER, total_questions INTEGER, created_at TEXT)`);
   }
 
   /**
@@ -96,19 +98,31 @@ export class StudyBotAgent {
       // Update last active
       await this.updateUserState(userId, { lastActive: new Date().toISOString() });
       
-      // Simple command parsing
-      if (message.toLowerCase().includes('summarize') || message.toLowerCase().includes('explain')) {
-        const topic = this.extractTopic(message);
-        return await this.summarizeTopic(topic, userState);
-      }
+      // Enhanced command parsing
+      const intent = this.parseIntent(message);
       
-      if (message.toLowerCase().includes('quiz me') || message.toLowerCase().includes('generate quiz') || message.toLowerCase().includes('create quiz')) {
-        const topic = userState.lastTopic || this.extractTopic(message);
-        return await this.generateQuiz(topic, userId);
-      }
-      
-      if (message.toLowerCase().includes('streak') || message.toLowerCase().includes('progress')) {
-        return this.getProgressMessage(userState);
+      switch (intent.type) {
+        case 'summarize':
+          return await this.summarizeTopic(intent.topic || 'general knowledge', userState);
+        
+        case 'quiz_generate':
+          return await this.generateQuiz(intent.topic || 'general knowledge', userId);
+        
+        case 'quiz_list':
+          return await this.listQuizzes(userId);
+        
+        case 'quiz_show':
+          return await this.showQuiz(userId, intent.quizId || '');
+        
+        case 'quiz_answer':
+          return await this.submitQuizAnswers(userId, intent.answers || []);
+        
+        case 'progress':
+          return this.getProgressMessage(userState);
+        
+        case 'general':
+        default:
+          return await this.handleGeneralQuestion(message, userState);
       }
       
       // Default response
@@ -250,6 +264,70 @@ Format as JSON with this structure:
            `Keep up the great work! 🎉`;
   }
 
+  // List user's quizzes
+  async listQuizzes(userId: string): Promise<string> {
+    const quizzes = await this.getUserQuizzes(userId);
+    
+    if (quizzes.length === 0) {
+      return '📝 **Your Quizzes**\n\nNo quizzes yet! Try creating one with "quiz me on [topic]".';
+    }
+    
+    let response = '📝 **Your Recent Quizzes**\n\n';
+    quizzes.slice(0, 5).forEach((quiz, index) => {
+      const date = new Date(quiz.createdAt).toLocaleDateString();
+      response += `${index + 1}. **${quiz.topic}** (${quiz.questions.length} questions) - ${date}\n`;
+      response += `   ID: \`${quiz.id}\`\n\n`;
+    });
+    
+    response += '💡 Use "show quiz [ID]" to view a specific quiz, or "answer A,B,C" to submit answers.';
+    return response;
+  }
+
+  // Show a specific quiz
+  async showQuiz(userId: string, quizId: string): Promise<string> {
+    const quiz = await this.getQuiz(userId, quizId);
+    
+    if (!quiz) {
+      return '❌ Quiz not found. Use "list quizzes" to see your available quizzes.';
+    }
+    
+    let response = `🧠 **Quiz: ${quiz.topic}**\n\n`;
+    quiz.questions.forEach((question, index) => {
+      response += `**Question ${index + 1}:** ${question.question}\n`;
+      if (question.options) {
+        question.options.forEach((option, i) => {
+          response += `${String.fromCharCode(65 + i)}. ${option}\n`;
+        });
+      }
+      response += '\n';
+    });
+    
+    response += '💡 Use "answer A,B,C" to submit your answers.';
+    return response;
+  }
+
+  // Submit quiz answers
+  async submitQuizAnswers(userId: string, answers: string[]): Promise<string> {
+    const quizzes = await this.getUserQuizzes(userId);
+    
+    if (quizzes.length === 0) {
+      return '❌ No quizzes available to answer. Create a quiz first!';
+    }
+    
+    const latestQuiz = quizzes[0];
+    const result = await this.gradeQuiz(userId, latestQuiz.id, answers);
+    
+    if (result.error) {
+      return `❌ ${result.error}`;
+    }
+    
+    const emoji = result.percentage >= 80 ? '🎉' : result.percentage >= 60 ? '👍' : '📚';
+    return `${emoji} **Quiz Results**\n\n` +
+           `📊 Score: ${result.score}/${result.total} (${result.percentage}%)\n` +
+           `🔥 Your study streak is now ${(await this.getUserState(userId)).streak} days!\n\n` +
+           `${result.percentage >= 80 ? 'Excellent work!' : result.percentage >= 60 ? 'Good job!' : 'Keep studying!'}`;
+  }
+
   // Handle general questions with AI
   async handleGeneralQuestion(message: string, userState: UserState): Promise<string> {
     try {
@@ -284,6 +362,41 @@ Be encouraging and mention their current study streak of ${userState.streak} day
   }
 
   // Helper methods
+  private parseIntent(message: string): { type: string; topic?: string; quizId?: string; answers?: string[] } {
+    const m = message.toLowerCase();
+    
+    if (m.startsWith('summarize ') || m.startsWith('explain ')) {
+      return { type: 'summarize', topic: message.replace(/^(summarize|explain)\s+/i, '') };
+    }
+    
+    if (m.startsWith('quiz me on ') || m.includes('generate quiz') || m.includes('create quiz')) {
+      const topic = m.startsWith('quiz me on ') 
+        ? message.replace(/^quiz me on\s+/i, '')
+        : this.extractTopic(message);
+      return { type: 'quiz_generate', topic };
+    }
+    
+    if (/^list quizzes/i.test(message)) {
+      return { type: 'quiz_list' };
+    }
+    
+    const showMatch = message.match(/^show quiz\s+(\S+)/i);
+    if (showMatch) {
+      return { type: 'quiz_show', quizId: showMatch[1] };
+    }
+    
+    if (/^answer[:\s]/i.test(message)) {
+      const answers = message.replace(/^answer[:\s]/i, '').split(/[,\s]+/).filter(Boolean);
+      return { type: 'quiz_answer', answers };
+    }
+    
+    if (/progress|streak/i.test(m)) {
+      return { type: 'progress' };
+    }
+    
+    return { type: 'general' };
+  }
+
   private extractTopic(message: string): string {
     // Simple topic extraction - look for words after "summarize" or "explain"
     const match = message.match(/(?:summarize|explain|quiz me|generate quiz|create quiz)\s+(.+)/i);
@@ -314,14 +427,32 @@ Be encouraging and mention their current study streak of ${userState.streak} day
   }
 
   private async updateUserState(userId: string, updates: Partial<UserState>): Promise<void> {
+    // Get current state to merge with updates
+    const current = await this.db.prepare(
+      'SELECT * FROM user_states WHERE user_id = ?'
+    ).bind(userId).first();
+
+    const merged = {
+      streak: updates.streak ?? (current?.streak ?? 0),
+      lastTopic: updates.lastTopic ?? (current?.last_topic ?? null),
+      lastActive: updates.lastActive ?? (current?.last_active ?? new Date().toISOString()),
+      data: current?.data ?? null
+    };
+
     await this.db.prepare(`
-      INSERT OR REPLACE INTO user_states (user_id, streak, last_topic, last_active)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO user_states (user_id, streak, last_topic, last_active, data)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(user_id) DO UPDATE SET
+        streak = excluded.streak,
+        last_topic = excluded.last_topic,
+        last_active = excluded.last_active,
+        data = excluded.data
     `).bind(
       userId,
-      updates.streak || 0,
-      updates.lastTopic || null,
-      updates.lastActive || new Date().toISOString()
+      merged.streak,
+      merged.lastTopic,
+      merged.lastActive,
+      merged.data
     ).run();
   }
 
@@ -340,14 +471,85 @@ Be encouraging and mention their current study streak of ${userState.streak} day
 
   private async storeQuiz(userId: string, quiz: Quiz): Promise<void> {
     await this.db.prepare(`
-      INSERT INTO quizzes (id, user_id, topic, questions)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO quizzes (id, user_id, topic, questions, created_at)
+      VALUES (?, ?, ?, ?, ?)
     `).bind(
       quiz.id,
       userId,
       quiz.topic,
-      JSON.stringify(quiz.questions)
+      JSON.stringify(quiz.questions),
+      quiz.createdAt
     ).run();
+  }
+
+  private async getQuiz(userId: string, quizId: string): Promise<Quiz | null> {
+    const row = await this.db.prepare(
+      'SELECT * FROM quizzes WHERE id = ? AND user_id = ?'
+    ).bind(quizId, userId).first();
+
+    if (!row) return null;
+
+    return {
+      id: row.id as string,
+      topic: row.topic as string,
+      questions: JSON.parse((row.questions as string) || '[]'),
+      createdAt: row.created_at as string
+    };
+  }
+
+  private async gradeQuiz(userId: string, quizId: string, answers: string[]): Promise<any> {
+    const quiz = await this.getQuiz(userId, quizId);
+    if (!quiz) {
+      return { error: 'Quiz not found' };
+    }
+
+    // Grade the quiz
+    let score = 0;
+    
+    quiz.questions.forEach((question, index) => {
+      const userAnswer = (answers[index] || '').trim().toUpperCase();
+      const correctAnswer = question.answer?.trim();
+      
+      // Check if user selected the correct option by letter
+      if (question.options && correctAnswer) {
+        const correctIndex = question.options.findIndex(option => option.trim() === correctAnswer);
+        const correctLetter = String.fromCharCode(65 + correctIndex); // A, B, C, D
+        
+        if (userAnswer === correctLetter) {
+          score++;
+        }
+      }
+    });
+
+    // Store the result
+    const resultId = `result_${Date.now()}`;
+    await this.db.prepare(`
+      INSERT INTO quiz_results (id, quiz_id, user_id, answers, score, total_questions, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      resultId,
+      quizId,
+      userId,
+      JSON.stringify(answers),
+      score,
+      quiz.questions.length,
+      new Date().toISOString()
+    ).run();
+
+    // Update user streak
+    const userState = await this.getUserState(userId);
+    await this.updateUserState(userId, { 
+      streak: userState.streak + 1, 
+      lastActive: new Date().toISOString() 
+    });
+
+    return {
+      quizId,
+      score,
+      total: quiz.questions.length,
+      resultId,
+      percentage: Math.round((score / quiz.questions.length) * 100)
+    };
   }
 
   // WebSocket handler for real-time chat
@@ -372,6 +574,39 @@ Be encouraging and mention their current study streak of ${userState.streak} day
         const response = await this.chat(message, userId);
         
         return new Response(JSON.stringify({ response }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Quiz management APIs
+      if (url.pathname === '/api/quiz/list' && request.method === 'GET') {
+        const userId = url.searchParams.get('userId') ?? 'default';
+        const quizzes = await this.getUserQuizzes(userId);
+        return new Response(JSON.stringify({ quizzes }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const quizMatch = url.pathname.match(/^\/api\/quiz\/([^/]+)$/);
+      if (quizMatch && request.method === 'GET') {
+        const userId = url.searchParams.get('userId') ?? 'default';
+        const quiz = await this.getQuiz(userId, quizMatch[1]);
+        if (!quiz) {
+          return new Response(JSON.stringify({ error: 'Quiz not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        return new Response(JSON.stringify({ quiz }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      const submitMatch = url.pathname.match(/^\/api\/quiz\/([^/]+)\/submit$/);
+      if (submitMatch && request.method === 'POST') {
+        const { userId, answers } = await request.json() as { userId: string; answers: string[] };
+        const result = await this.gradeQuiz(userId, submitMatch[1], answers);
+        return new Response(JSON.stringify(result), {
           headers: { 'Content-Type': 'application/json' }
         });
       }

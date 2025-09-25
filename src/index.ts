@@ -39,6 +39,25 @@ export default {
       return obj.fetch(request);
     }
     
+    // Quiz management APIs
+    if (url.pathname === '/api/quiz/list' && request.method === 'GET') {
+      const id = env.STUDYBOT_AGENT.idFromName('main');
+      const obj = env.STUDYBOT_AGENT.get(id);
+      return obj.fetch(request);
+    }
+    
+    if (url.pathname.startsWith('/api/quiz/') && request.method === 'GET') {
+      const id = env.STUDYBOT_AGENT.idFromName('main');
+      const obj = env.STUDYBOT_AGENT.get(id);
+      return obj.fetch(request);
+    }
+    
+    if (url.pathname.match(/^\/api\/quiz\/[^/]+\/submit$/) && request.method === 'POST') {
+      const id = env.STUDYBOT_AGENT.idFromName('main');
+      const obj = env.STUDYBOT_AGENT.get(id);
+      return obj.fetch(request);
+    }
+    
     // Test endpoints
     if (url.pathname === '/api/test/types' && request.method === 'GET') {
       const results = testTypes();

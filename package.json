@@ -1,15 +1,15 @@
 {
   "name": "studybot-cloudflare-agent",
   "version": "1.0.0",
-  "description": "AI-powered study companion demonstrating Cloudflare's AI stack with Workers, Durable Objects, Workers AI, and D1 Database",
+  "description": "AI-powered study companion using Cloudflare Agents SDK with built-in state management, WebSocket support, and SQLite database",
   "main": "src/index.ts",
   "type": "module",
   "keywords": [
     "cloudflare",
     "workers",
     "ai",
-    "durable-objects",
-    "d1-database",
+    "agents-sdk",
+    "sqlite",
     "study-buddy",
     "education",
     "chatbot",

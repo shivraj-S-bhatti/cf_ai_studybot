@@ -29,7 +29,7 @@ class StudyBuddyApp {
         });
 
         // Quick action buttons
-        document.querySelectorAll('.quick-btn').forEach(btn => {
+        document.querySelectorAll('.action-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const action = e.target.dataset.action;
                 this.handleQuickAction(action);
@@ -181,15 +181,47 @@ class StudyBuddyApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}-message`;
 
+        // Create avatar
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        const avatarIcon = document.createElement('div');
+        avatarIcon.className = 'avatar-icon';
+        avatarIcon.textContent = sender === 'user' ? '👤' : '🤖';
+        avatarDiv.appendChild(avatarIcon);
+
+        // Create message content
         const contentDiv = document.createElement('div');
         contentDiv.className = 'message-content';
         
+        // Create message header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        
+        const senderName = document.createElement('span');
+        senderName.className = 'sender-name';
+        senderName.textContent = sender === 'user' ? 'You' : 'Study Buddy';
+        
+        const timeDiv = document.createElement('span');
+        timeDiv.className = 'message-time';
+        timeDiv.textContent = this.formatTime(new Date());
+        
+        headerDiv.appendChild(senderName);
+        headerDiv.appendChild(timeDiv);
+        
+        // Create message text
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        
         if (sender === 'user') {
-            contentDiv.innerHTML = `<strong>You:</strong> ${this.escapeHtml(content)}`;
+            textDiv.innerHTML = this.escapeHtml(content);
         } else {
-            contentDiv.innerHTML = this.formatBotMessage(content);
+            textDiv.innerHTML = this.formatBotMessage(content);
         }
-
+        
+        contentDiv.appendChild(headerDiv);
+        contentDiv.appendChild(textDiv);
+        
+        messageDiv.appendChild(avatarDiv);
         messageDiv.appendChild(contentDiv);
         this.chatMessages.appendChild(messageDiv);
         this.scrollToBottom();
@@ -223,18 +255,46 @@ class StudyBuddyApp {
 
     showTypingIndicator() {
         const typingDiv = document.createElement('div');
-        typingDiv.className = 'message bot-message typing-indicator';
+        typingDiv.className = 'typing-indicator';
         typingDiv.id = 'typingIndicator';
-        typingDiv.innerHTML = `
-            <div class="message-content">
-                <strong>Study Buddy:</strong> 
-                <div class="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-        `;
+        
+        // Create avatar
+        const avatarDiv = document.createElement('div');
+        avatarDiv.className = 'message-avatar';
+        const avatarIcon = document.createElement('div');
+        avatarIcon.className = 'avatar-icon';
+        avatarIcon.textContent = '🤖';
+        avatarDiv.appendChild(avatarIcon);
+        
+        // Create message content
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        
+        // Create message header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'message-header';
+        
+        const senderName = document.createElement('span');
+        senderName.className = 'sender-name';
+        senderName.textContent = 'Study Buddy';
+        
+        headerDiv.appendChild(senderName);
+        
+        // Create typing dots
+        const textDiv = document.createElement('div');
+        textDiv.className = 'message-text';
+        textDiv.innerHTML = 'Typing';
+        
+        const dotsDiv = document.createElement('div');
+        dotsDiv.className = 'typing-dots';
+        dotsDiv.innerHTML = '<span></span><span></span><span></span>';
+        
+        contentDiv.appendChild(headerDiv);
+        contentDiv.appendChild(textDiv);
+        contentDiv.appendChild(dotsDiv);
+        
+        typingDiv.appendChild(avatarDiv);
+        typingDiv.appendChild(contentDiv);
         this.chatMessages.appendChild(typingDiv);
         this.scrollToBottom();
     }
@@ -383,14 +443,20 @@ class StudyBuddyApp {
         // Extract streak from response if available
         const streakMatch = data.response?.match(/streak is now (\d+)/);
         if (streakMatch) {
-            this.userStreak.textContent = `Streak: ${streakMatch[1]} days`;
+            const streakText = this.userStreak.querySelector('.streak-text');
+            if (streakText) {
+                streakText.textContent = `${streakMatch[1]} days`;
+            }
         }
     }
 
     async loadUserProgress() {
         // This would typically load user progress from the API
         // For now, we'll just show a default streak
-        this.userStreak.textContent = 'Streak: 0 days';
+        const streakText = this.userStreak.querySelector('.streak-text');
+        if (streakText) {
+            streakText.textContent = '0 days';
+        }
     }
 
     scrollToBottom() {

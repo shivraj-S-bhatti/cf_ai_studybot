@@ -1,14 +1,12 @@
+// Study Buddy Agent - Frontend JavaScript
 class StudyBuddyApp {
     constructor() {
-        this.ws = null;
+        this.baseUrl = window.location.origin;
         this.userId = this.getUserId();
-        this.isConnected = false;
-        this.retryCount = 0;
-        this.maxRetries = 5;
-        
         this.initializeElements();
-        this.setupEventListeners();
-        this.connect();
+        this.attachEventListeners();
+        this.loadUserProgress();
+        this.updateConnectionStatus('Connected', true);
     }
 
     initializeElements() {
@@ -19,10 +17,11 @@ class StudyBuddyApp {
         this.userStreak = document.getElementById('userStreak');
     }
 
-    setupEventListeners() {
+    attachEventListeners() {
         this.sendButton.addEventListener('click', () => this.sendMessage());
+        
         this.messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter') {
                 e.preventDefault();
                 this.sendMessage();
             }
@@ -48,132 +47,43 @@ class StudyBuddyApp {
     getUserId() {
         let userId = localStorage.getItem('studyBuddyUserId');
         if (!userId) {
-            userId = 'user_' + Math.random().toString(36).substr(2, 9);
+            userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
             localStorage.setItem('studyBuddyUserId', userId);
         }
         return userId;
     }
 
-    connect() {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}`;
-        
-        try {
-            this.ws = new WebSocket(wsUrl);
-            
-            this.ws.onopen = () => {
-                console.log('Connected to Study Buddy Agent');
-                this.isConnected = true;
-                this.retryCount = 0;
-                this.updateConnectionStatus('Connected', true);
-                this.loadUserProgress();
-            };
-
-            this.ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    this.handleMessage(data);
-                } catch (error) {
-                    console.error('Error parsing message:', error);
-                }
-            };
-
-            this.ws.onclose = () => {
-                console.log('Disconnected from Study Buddy Agent');
-                this.isConnected = false;
-                this.updateConnectionStatus('Disconnected', false);
-                this.attemptReconnect();
-            };
-
-            this.ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                this.updateConnectionStatus('Error', false);
-            };
-
-        } catch (error) {
-            console.error('Failed to connect:', error);
-            this.updateConnectionStatus('Connection Failed', false);
-            this.attemptReconnect();
-        }
-    }
-
-    attemptReconnect() {
-        if (this.retryCount < this.maxRetries) {
-            this.retryCount++;
-            const delay = Math.min(1000 * Math.pow(2, this.retryCount), 10000);
-            
-            console.log(`Attempting to reconnect in ${delay}ms (attempt ${this.retryCount}/${this.maxRetries})`);
-            
-            setTimeout(() => {
-                this.connect();
-            }, delay);
-        } else {
-            this.updateConnectionStatus('Connection Failed', false);
-        }
-    }
-
-    sendMessage() {
+    async sendMessage() {
         const message = this.messageInput.value.trim();
-        if (!message || !this.isConnected) return;
+        if (!message) return;
 
         this.addMessage(message, 'user');
         this.messageInput.value = '';
         this.sendButton.disabled = true;
 
-        // Show typing indicator
         this.showTypingIndicator();
 
-        // Send message via WebSocket
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.ws.send(JSON.stringify({
-                message: message,
-                userId: this.userId
-            }));
-        } else {
-            // Fallback to HTTP API
-            this.sendMessageHTTP(message);
-        }
-    }
-
-    async sendMessageHTTP(message) {
         try {
-            const response = await fetch('/api/chat', {
+            const response = await fetch(`${this.baseUrl}/api/chat`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    message: message,
-                    userId: this.userId
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message, userId: this.userId })
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                this.hideTypingIndicator();
-                this.addMessage(data.response, 'bot');
-                this.updateUserProgress(data);
-            } else {
-                throw new Error('HTTP request failed');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-        } catch (error) {
-            console.error('HTTP request failed:', error);
+
+            const data = await response.json();
             this.hideTypingIndicator();
-            this.addMessage('Sorry, I encountered an error. Please try again.', 'bot');
-        } finally {
-            this.sendButton.disabled = false;
-        }
-    }
-
-    handleMessage(data) {
-        this.hideTypingIndicator();
-        this.sendButton.disabled = false;
-
-        if (data.error) {
-            this.addMessage(data.error, 'bot');
-        } else if (data.response) {
             this.addMessage(data.response, 'bot');
             this.updateUserProgress(data);
+        } catch (error) {
+            this.hideTypingIndicator();
+            this.addMessage(`Sorry, I encountered an error: ${error.message}`, 'bot');
+            this.updateConnectionStatus('Error', false);
+        } finally {
+            this.sendButton.disabled = false;
         }
     }
 
@@ -237,14 +147,16 @@ class StudyBuddyApp {
         // Italic text
         formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
         
+        // Code blocks
+        formatted = formatted.replace(/```([\\s\\S]*?)```/g, '<pre><code>$1</code></pre>');
+        
+        // Inline code
+        formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+        
         // Line breaks
-        formatted = formatted.replace(/\n/g, '<br>');
+        formatted = formatted.replace(/\\n/g, '<br>');
         
-        // Lists
-        formatted = formatted.replace(/^• (.*$)/gm, '<li>$1</li>');
-        formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
-        
-        return `<strong>Study Buddy:</strong> ${formatted}`;
+        return formatted;
     }
 
     escapeHtml(text) {
@@ -306,16 +218,25 @@ class StudyBuddyApp {
         }
     }
 
-    handleQuickAction(action) {
-        const actions = {
-            summarize: 'summarize ',
-            quiz: 'quiz me on ',
-            progress: 'show my progress'
-        };
-
-        if (actions[action]) {
-            this.messageInput.value = actions[action];
-            this.messageInput.focus();
+    async handleQuickAction(action) {
+        let message = '';
+        switch (action) {
+            case 'summarize':
+                const topic = prompt('What topic would you like me to summarize?');
+                if (topic) message = `summarize ${topic}`;
+                break;
+            case 'quiz':
+                const quizTopic = prompt('What topic would you like a quiz on?');
+                if (quizTopic) message = `quiz me on ${quizTopic}`;
+                break;
+            case 'progress':
+                message = 'show my progress';
+                break;
+        }
+        
+        if (message) {
+            this.messageInput.value = message;
+            await this.sendMessage();
         }
     }
 
@@ -335,103 +256,99 @@ class StudyBuddyApp {
 
     async listQuizzes() {
         try {
-            const response = await fetch(`/api/quiz/list?userId=${this.userId}`);
+            const response = await fetch(`${this.baseUrl}/api/quiz/list?userId=${this.userId}`);
             const data = await response.json();
             
             if (data.quizzes && data.quizzes.length > 0) {
-                let message = '📝 **Your Recent Quizzes**\n\n';
+                let message = '📝 **Your Recent Quizzes**\\n\\n';
                 data.quizzes.slice(0, 5).forEach((quiz, index) => {
                     const date = new Date(quiz.createdAt).toLocaleDateString();
-                    message += `${index + 1}. **${quiz.topic}** (${quiz.questions.length} questions) - ${date}\n`;
-                    message += `   ID: \`${quiz.id}\`\n\n`;
+                    message += `${index + 1}. **${quiz.topic}** (${quiz.questions.length} questions) - ${date}\\n`;
+                    message += `   ID: \`${quiz.id}\`\\n\\n`;
                 });
-                message += '💡 Use "show quiz [ID]" to view a specific quiz.';
+                message += '💡 Use "show quiz [ID]" to view a specific quiz, or "answer A,B,C" to submit answers.';
                 this.addMessage(message, 'bot');
             } else {
-                this.addMessage('📝 **Your Quizzes**\n\nNo quizzes yet! Try creating one with "quiz me on [topic]".', 'bot');
+                this.addMessage('📝 **Your Quizzes**\\n\\nNo quizzes yet! Try creating one with "quiz me on [topic]".', 'bot');
             }
         } catch (error) {
-            console.error('Error listing quizzes:', error);
-            this.addMessage('❌ Error loading quizzes. Please try again.', 'bot');
+            this.addMessage(`Error loading quizzes: ${error.message}`, 'bot');
         }
     }
 
     async showLastQuiz() {
         try {
-            const response = await fetch(`/api/quiz/list?userId=${this.userId}`);
+            const response = await fetch(`${this.baseUrl}/api/quiz/list?userId=${this.userId}`);
             const data = await response.json();
             
-            if (!data.quizzes || data.quizzes.length === 0) {
-                this.addMessage('❌ No quizzes available. Create a quiz first!', 'bot');
-                return;
-            }
-            
-            const latestQuiz = data.quizzes[0];
-            const quizResponse = await fetch(`/api/quiz/${latestQuiz.id}?userId=${this.userId}`);
-            const quizData = await quizResponse.json();
-            
-            if (quizData.quiz) {
-                let message = `🧠 **Quiz: ${quizData.quiz.topic}**\n\n`;
-                quizData.quiz.questions.forEach((question, index) => {
-                    message += `**Question ${index + 1}:** ${question.question}\n`;
-                    if (question.options) {
-                        question.options.forEach((option, i) => {
-                            message += `${String.fromCharCode(65 + i)}. ${option}\n`;
-                        });
-                    }
-                    message += '\n';
-                });
-                message += '💡 Use "answer A,B,C" to submit your answers.';
-                this.addMessage(message, 'bot');
+            if (data.quizzes && data.quizzes.length > 0) {
+                const quiz = data.quizzes[0];
+                const quizResponse = await fetch(`${this.baseUrl}/api/quiz/${quiz.id}?userId=${this.userId}`);
+                const quizData = await quizResponse.json();
+                
+                if (quizData.quiz) {
+                    let message = `🧠 **Quiz: ${quizData.quiz.topic}**\\n\\n`;
+                    quizData.quiz.questions.forEach((question, index) => {
+                        message += `**Question ${index + 1}:** ${question.question}\\n`;
+                        if (question.options) {
+                            question.options.forEach((option, i) => {
+                                message += `${String.fromCharCode(65 + i)}. ${option}\\n`;
+                            });
+                        }
+                        message += '\\n';
+                    });
+                    message += '💡 Use "answer A,B,C" to submit your answers.';
+                    this.addMessage(message, 'bot');
+                } else {
+                    this.addMessage('Quiz not found.', 'bot');
+                }
             } else {
-                this.addMessage('❌ Quiz not found.', 'bot');
+                this.addMessage('No quizzes available. Create a quiz first!', 'bot');
             }
         } catch (error) {
-            console.error('Error showing quiz:', error);
-            this.addMessage('❌ Error loading quiz. Please try again.', 'bot');
+            this.addMessage(`Error loading quiz: ${error.message}`, 'bot');
         }
     }
 
     async submitAnswers() {
         const answers = prompt('Enter your answers separated by commas (e.g., A,B,C):');
         if (!answers) return;
-        
+
         try {
-            const response = await fetch(`/api/quiz/list?userId=${this.userId}`);
+            const response = await fetch(`${this.baseUrl}/api/quiz/list?userId=${this.userId}`);
             const data = await response.json();
             
-            if (!data.quizzes || data.quizzes.length === 0) {
-                this.addMessage('❌ No quiz to submit answers to. Create a quiz first!', 'bot');
-                return;
-            }
-            
-            const latestQuiz = data.quizzes[0];
-            const submitResponse = await fetch(`/api/quiz/${latestQuiz.id}/submit`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId: this.userId,
-                    answers: answers.split(/[,\s]+/).filter(Boolean)
-                })
-            });
-            
-            const result = await submitResponse.json();
-            
-            if (result.error) {
-                this.addMessage(`❌ ${result.error}`, 'bot');
+            if (data.quizzes && data.quizzes.length > 0) {
+                const quiz = data.quizzes[0];
+                const answerArray = answers.split(/[,\\s]+/).filter(Boolean);
+                
+                const submitResponse = await fetch(`${this.baseUrl}/api/quiz/${quiz.id}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: this.userId, answers: answerArray })
+                });
+                
+                const result = await submitResponse.json();
+                
+                if (result.error) {
+                    this.addMessage(`❌ ${result.error}`, 'bot');
+                } else {
+                    const emoji = result.percentage >= 80 ? '🎉' : result.percentage >= 60 ? '👍' : '📚';
+                    const message = `${emoji} **Quiz Results**\\n\\n` +
+                                 `📊 Score: ${result.score}/${result.total} (${result.percentage}%)\\n` +
+                                 `${result.percentage >= 80 ? 'Excellent work!' : result.percentage >= 60 ? 'Good job!' : 'Keep studying!'}`;
+                    this.addMessage(message, 'bot');
+                }
             } else {
-                const emoji = result.percentage >= 80 ? '🎉' : result.percentage >= 60 ? '👍' : '📚';
-                const message = `${emoji} **Quiz Results**\n\n` +
-                    `📊 Score: ${result.score}/${result.total} (${result.percentage}%)\n\n` +
-                    `${result.percentage >= 80 ? 'Excellent work!' : result.percentage >= 60 ? 'Good job!' : 'Keep studying!'}`;
-                this.addMessage(message, 'bot');
+                this.addMessage('No quizzes available to answer. Create a quiz first!', 'bot');
             }
         } catch (error) {
-            console.error('Error submitting answers:', error);
-            this.addMessage('❌ Error submitting answers. Please try again.', 'bot');
+            this.addMessage(`Error submitting answers: ${error.message}`, 'bot');
         }
+    }
+
+    formatTime(date) {
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     updateConnectionStatus(status, connected) {
@@ -441,7 +358,7 @@ class StudyBuddyApp {
 
     updateUserProgress(data) {
         // Extract streak from response if available
-        const streakMatch = data.response?.match(/streak is now (\d+)/);
+        const streakMatch = data.response?.match(/streak is now (\\d+)/);
         if (streakMatch) {
             const streakText = this.userStreak.querySelector('.streak-text');
             if (streakText) {

@@ -1,5 +1,8 @@
 # 🤖 Study Buddy Agent - AI-Powered Study Companion
 
+<img width="875" height="824" alt="image" src="https://github.com/user-attachments/assets/c7e18b7a-40dd-4f3b-b715-ff1c2662347f" />
+
+
 > **Built with Cloudflare Agents & Durable Objects** - A next-generation AI study assistant leveraging Cloudflare's cutting-edge edge computing platform
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/shivraj-S-bhatti/cf_ai_studybot)
@@ -50,7 +53,6 @@ graph TB
 - **🔒 Zero-Config Security**: Built-in DDoS protection and WAF
 - **💰 Cost-Effective**: Pay only for what you use
 - **🔄 Auto-Scaling**: Handles traffic spikes automatically
-- **🛡️ Enterprise-Grade**: Trusted by Fortune 500 companies
 
 ---
 
@@ -114,23 +116,6 @@ CREATE TABLE quiz_results (
   created_at TEXT
 );
 ```
-
----
-
-## 🎨 **UI/UX: Apple-Inspired Design**
-
-### **Design Philosophy**
-- **Minimal & Clean**: Apple's signature design language
-- **Smooth Animations**: 60fps transitions and micro-interactions
-- **Accessibility First**: WCAG 2.1 AA compliant
-- **Mobile-First**: Responsive design for all devices
-
-### **Key UI Components**
-- **Floating Logo**: Animated book emoji with subtle bounce
-- **Message Avatars**: Distinct user and bot avatars
-- **Gradient Backgrounds**: Beautiful purple-to-blue gradients
-- **Glass Morphism**: Backdrop blur effects on key elements
-- **Smart Buttons**: Context-aware action buttons with hover effects
 
 ---
 
@@ -263,25 +248,22 @@ POST /api/quiz/{quizId}/submit
 - [x] Llama 3.1 integration
 - [x] Quiz generation
 - [x] Progress tracking
-- [x] Apple-inspired UI
 
 ### **Phase 2: Advanced Features** 🚧
 - [ ] Voice interactions
 - [ ] Study group collaboration
-- [ ] Advanced analytics
 - [ ] Mobile app
 
 ### **Phase 3: Enterprise** 📋
 - [ ] Multi-tenant support
 - [ ] Admin dashboard
 - [ ] API rate limiting
-- [ ] Advanced security
 
 ---
 
 ## 🤝 **Contributing**
 
-We welcome contributions! Here's how you can help:
+I welcome contributions! Here's how you can help:
 
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
@@ -306,23 +288,6 @@ npm run type-check
 ## 📄 **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 **Acknowledgments**
-
-- **Cloudflare** for the amazing Workers and AI platform
-- **OpenAI** for the Llama model architecture
-- **Apple** for design inspiration
-- **The Community** for feedback and contributions
-
----
-
-## 📞 **Support**
-
-- **Documentation**: [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
-- **Community**: [Cloudflare Discord](https://discord.cloudflare.com/)
-- **Issues**: [GitHub Issues](https://github.com/shivraj-S-bhatti/cf_ai_studybot/issues)
 
 ---
 

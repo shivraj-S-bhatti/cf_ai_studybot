@@ -3,19 +3,15 @@
 <img width="875" height="824" alt="image" src="https://github.com/user-attachments/assets/c7e18b7a-40dd-4f3b-b715-ff1c2662347f" />
 
 
-> **Built with Cloudflare Agents & Durable Objects** - A next-generation AI study assistant leveraging Cloudflare's cutting-edge edge computing platform
+> **Built with Cloudflare Workers, Agents & Durable Objects** 
 
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/shivraj-S-bhatti/cf_ai_studybot)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Study%20Buddy-blue?style=flat&logo=cloudflare)](https://studybot-agent.ssbhatti.workers.dev)
 
 ## 🌟 **Live Demo**
-**Experience the future of AI-powered learning:** [https://studybot-agent.ssbhatti.workers.dev](https://studybot-agent.ssbhatti.workers.dev)
+**hosted on Cloudflare Pages:** [https://studybot-agent.ssbhatti.workers.dev](https://studybot-agent.ssbhatti.workers.dev)
 
 ---
-
-## 🚀 **What Makes This Special?**
-
-This isn't just another chatbot. Study Buddy Agent is a **production-ready AI study companion** built on Cloudflare's revolutionary **Agents platform** and **Durable Objects**, showcasing the future of edge computing and AI.
 
 ### **🎯 Key Features**
 - **🧠 AI-Powered Learning**: Powered by Cloudflare Workers AI with Llama 3.1
@@ -23,7 +19,6 @@ This isn't just another chatbot. Study Buddy Agent is a **production-ready AI st
 - **📊 Progress Tracking**: Study streaks and performance analytics
 - **💾 Persistent Memory**: Never lose your progress with Durable Objects
 - **⚡ Edge Computing**: Lightning-fast responses from 200+ global locations
-- **🎨 Apple-Inspired UI**: Beautiful, minimal design with smooth animations
 - **📱 Mobile-First**: Responsive design that works everywhere
 
 ---
@@ -154,22 +149,6 @@ database_id = "your-database-id"
 [[ai]]
 binding = "AI"
 ```
-
----
-
-## 📊 **Performance Metrics**
-
-### **Edge Computing Benefits**
-- **⚡ Response Time**: < 50ms globally
-- **🌍 Global Reach**: 200+ edge locations
-- **📈 Uptime**: 99.99% SLA
-- **🔄 Auto-Scaling**: Handles 0 to 100k+ requests
-
-### **AI Performance**
-- **🧠 Model**: Llama 3.1 8B Instruct
-- **⚡ Inference**: < 2 seconds per request
-- **🎯 Accuracy**: 95%+ quiz generation accuracy
-- **💬 Context**: 4k token context window
 
 ---
 

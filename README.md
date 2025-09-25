@@ -291,23 +291,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 **Acknowledgments**
-
-- **Cloudflare** for the amazing Workers and AI platform
-- **OpenAI** for the Llama model architecture
-- **Apple** for design inspiration
-- **The Community** for feedback and contributions
-
----
-
-## 📞 **Support**
-
-- **Documentation**: [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
-- **Community**: [Cloudflare Discord](https://discord.cloudflare.com/)
-- **Issues**: [GitHub Issues](https://github.com/shivraj-S-bhatti/cf_ai_studybot/issues)
-
----
-
 <div align="center">
 
 **Built with ❤️ using Cloudflare Agents & Durable Objects**
